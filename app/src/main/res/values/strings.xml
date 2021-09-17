@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Android Simple Music Player</string>
+    <string name="artist">Luis Fonsi feat. Daddy Yankee</string>
+    <string name="music_name">Despacito</string>
+</resources>
