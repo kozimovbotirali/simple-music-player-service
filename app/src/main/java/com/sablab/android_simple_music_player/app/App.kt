@@ -5,8 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.sablab.android_simple_music_player.BuildConfig
-import com.sablab.android_simple_music_player.extensions.Constants.Companion.channelID
-import com.sablab.android_simple_music_player.extensions.Constants.Companion.notificationChannelName
+import com.sablab.android_simple_music_player.util.Constants.Companion.channelID
+import com.sablab.android_simple_music_player.util.Constants.Companion.notificationChannelName
 import timber.log.Timber
 
 class App : Application() {

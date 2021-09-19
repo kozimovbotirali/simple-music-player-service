@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="RoundRectCornerImageView">
+        <attr name="radius" format="integer" />
+    </declare-styleable>
+
+    <declare-styleable name="PlayPauseButton">
+        <attr name="icChecked" format="boolean" />
+    </declare-styleable>
+</resources>

@@ -1,4 +1,4 @@
-package com.sablab.android_simple_music_player.extensions
+package com.sablab.android_simple_music_player.util
 
 import android.app.Activity
 import android.content.Context

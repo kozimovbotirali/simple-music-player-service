@@ -1,5 +1,6 @@
-package com.sablab.android_simple_music_player.model
+package com.sablab.android_simple_music_player.data.models
 
+import android.net.Uri
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
@@ -10,5 +11,6 @@ data class Music(
     var title: String? = null,
     var data: String? = null,
     var displayName: String? = null,
-    var duration: Long? = null
+    var duration: Long? = null,
+    var imageUri: Uri? = null,
 ) : Parcelable

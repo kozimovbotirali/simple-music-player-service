@@ -4,64 +4,66 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:paddingHorizontal="10dp"
-    android:paddingVertical="5dp">
+    android:foreground="?selectableItemBackground"
+    android:paddingHorizontal="25dp"
+    android:paddingVertical="@dimen/_10dp">
 
-    <com.sablab.android_simple_music_player.extensions.RoundRectCornerImageView
+    <com.sablab.android_simple_music_player.util.custom.RoundRectCornerImageView
         android:id="@+id/image"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/_52dp"
+        android:layout_height="@dimen/_52dp"
         android:contentDescription="@string/app_name"
         android:src="@drawable/ic_music"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:radius="15"
         tools:ignore="ImageContrastCheck" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/text_name"
+        style="@style/TextMedium"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="5dp"
         android:layout_marginEnd="5dp"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:maxLines="1"
         app:layout_constraintBottom_toTopOf="@id/text_author_name"
         app:layout_constraintLeft_toRightOf="@id/image"
-        app:layout_constraintRight_toLeftOf="@id/img_play"
+        app:layout_constraintRight_toLeftOf="@id/btn_more"
         app:layout_constraintTop_toTopOf="@id/image"
         app:layout_constraintVertical_chainStyle="packed"
         tools:text="@string/music_name" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/text_author_name"
+        style="@style/TextSmall"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="5dp"
         android:layout_marginEnd="5dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="@color/black"
-        android:textSize="12sp"
+        android:textColor="@color/text_info_color"
         app:layout_constraintBottom_toBottomOf="@id/image"
         app:layout_constraintLeft_toRightOf="@id/image"
-        app:layout_constraintRight_toLeftOf="@id/img_play"
+        app:layout_constraintRight_toLeftOf="@id/btn_more"
         app:layout_constraintTop_toBottomOf="@id/text_name"
         tools:text="@string/artist" />
 
     <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/img_play"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:src="@drawable/ic_baseline_play"
+        android:id="@+id/btn_more"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:src="@drawable/ic_baseline_more"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="TouchTargetSizeCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

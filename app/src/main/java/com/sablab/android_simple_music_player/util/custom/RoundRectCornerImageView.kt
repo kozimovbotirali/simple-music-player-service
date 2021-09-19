@@ -1,4 +1,4 @@
-package com.sablab.android_simple_music_player.extensions
+package com.sablab.android_simple_music_player.util.custom
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -8,6 +8,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import androidx.appcompat.widget.AppCompatImageView
+import com.sablab.android_simple_music_player.R
 import kotlin.math.roundToInt
 
 class RoundRectCornerImageView
@@ -24,6 +25,11 @@ class RoundRectCornerImageView
     private var path: Path? = null
 
     init {
+        val a = context.resources.obtainAttributes(attrs, R.styleable.RoundRectCornerImageView)
+        val value = a.getInt(R.styleable.RoundRectCornerImageView_radius, radius)
+        if (value != radius)
+            radius = value
+        a.recycle()
         path = Path()
     }
 

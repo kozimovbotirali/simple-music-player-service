@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".foreground_service.MusicService" />
+        <service android:name=".playback.MusicService" />
     </application>
 
 </manifest>

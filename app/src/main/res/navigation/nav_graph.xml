@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph.xml"
+    app:startDestination="@id/playListScreen">
+
+    <fragment
+        android:id="@+id/playListScreen"
+        android:name="com.sablab.android_simple_music_player.presentation.ui.screens.playlist_screen.PlayListScreen"
+        android:label="screen_playlist"
+        tools:layout="@layout/screen_playlist" />
+</navigation>
