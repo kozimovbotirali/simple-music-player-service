@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import com.sablab.android_simple_music_player.R
+import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.util.timberErrorLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,19 +34,19 @@ const val DISPLAY_NAME = 4
 const val DURATION = 5
 const val ALBUM_ID = 6
 
+val projection = arrayOf(
+    MediaStore.Audio.Media._ID, //0
+    MediaStore.Audio.Media.ARTIST, //1
+    MediaStore.Audio.Media.TITLE, //2
+    MediaStore.Audio.Media.DATA, //3
+    MediaStore.Audio.Media.DISPLAY_NAME, //4
+    MediaStore.Audio.Media.DURATION, //5
+    MediaStore.Audio.Media.ALBUM_ID //5
+)
+
 fun Context.getPlayList(): Flow<Cursor> = flow {
     //Some audio may be explicitly marked as not being music
     val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
-
-    val projection = arrayOf(
-        MediaStore.Audio.Media._ID, //0
-        MediaStore.Audio.Media.ARTIST, //1
-        MediaStore.Audio.Media.TITLE, //2
-        MediaStore.Audio.Media.DATA, //3
-        MediaStore.Audio.Media.DISPLAY_NAME, //4
-        MediaStore.Audio.Media.DURATION, //5
-        MediaStore.Audio.Media.ALBUM_ID //5
-    )
 
     val cursor: Cursor = contentResolver.query(
         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -67,6 +68,30 @@ fun Context.getPlayList(): Flow<Cursor> = flow {
     }
     emit(cursor)
 }.flowOn(Dispatchers.IO)
+
+fun Context.getAudioInfo(path: String): Music? {
+    val selection = MediaStore.Audio.Media.DATA + " = ?"
+    val cursor: Cursor = contentResolver.query(
+        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+        projection,
+        selection,
+        arrayOf(path),
+        ""
+    ) ?: return null
+
+    val music = Music()
+    while (cursor.moveToNext()) {
+        music.id = cursor.getLong(ID)
+        music.artist = cursor.getString(ARTIST)
+        music.title = cursor.getString(TITLE)
+        music.data = cursor.getString(DATA)
+        music.displayName = cursor.getString(DISPLAY_NAME)
+        music.duration = cursor.getLong(DURATION)
+        music.imageUri = songArt(cursor.getLong(ALBUM_ID))
+    }
+    cursor.close()
+    return music
+}
 
 fun Context.songArt(path: String): Bitmap? {
     val retriever = MediaMetadataRetriever()

@@ -23,6 +23,16 @@ public abstract class CursorAdapter<VH extends RecyclerView.ViewHolder> extends 
         }
     }
 
+    public Cursor getItem(int position) {
+        if (!mDataValid) {
+            throw new IllegalStateException("Cannot lookup item id when cursor is in invalid state.");
+        }
+        if (!mCursor.moveToPosition(position)) {
+            throw new IllegalStateException("Could not move cursor to position " + position + " when trying to get an item id");
+        }
+        return mCursor;
+    }
+
     public Cursor getCursor() {
         return mCursor;
     }

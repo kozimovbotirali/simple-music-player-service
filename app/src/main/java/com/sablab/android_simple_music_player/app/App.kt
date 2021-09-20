@@ -5,10 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.sablab.android_simple_music_player.BuildConfig
+import com.sablab.android_simple_music_player.data.sources.local.LocalStorage
 import com.sablab.android_simple_music_player.util.Constants.Companion.channelID
 import com.sablab.android_simple_music_player.util.Constants.Companion.notificationChannelName
+import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 
+@HiltAndroidApp
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
@@ -16,6 +19,7 @@ class App : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        LocalStorage.init(this)
 
         createNotificationChannel()
     }
@@ -25,7 +29,7 @@ class App : Application() {
             val serviceChannel = NotificationChannel(
                 channelID,
                 notificationChannelName,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_LOW
             )
 
             val notificationManager = getSystemService(NotificationManager::class.java)

@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.sablab.android_simple_music_player.R
 import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.databinding.ItemMusicBinding
+import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.custom.CursorAdapter
 import com.sablab.android_simple_music_player.util.extensions.*
 
@@ -32,6 +33,7 @@ class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
                     duration = cursor.getLong(DURATION),
                     imageUri = root.context.songArt(cursor.getLong(ALBUM_ID))
                 )
+                data.data?.let { Constants.allMusics.add(it) }
                 textName.text = data.title
                 textAuthorName.text = data.artist
 

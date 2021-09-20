@@ -16,6 +16,6 @@ fun ImageView.loadImage(data: Bitmap) {
     Glide.with(this).load(data).centerCrop().into(this)
 }
 
-fun ImageView.loadImage(data: Uri) {
+fun ImageView.loadImage(data: Uri?) {
     Glide.with(this).load(data).centerCrop().placeholder(R.drawable.ic_music).into(this)
 }

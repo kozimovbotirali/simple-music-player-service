@@ -113,7 +113,7 @@
                     android:src="@drawable/ic_left"
                     tools:ignore="TouchTargetSizeCheck" />
 
-                <com.sablab.android_simple_music_player.util.custom.PlayPauseButton
+                <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/btn_play_pause"
                     android:layout_width="@dimen/_26sp"
                     android:layout_height="@dimen/_26sp"
@@ -121,6 +121,7 @@
                     android:background="?selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
+                    android:src="@drawable/ic_play"
                     tools:ignore="TouchTargetSizeCheck" />
 
                 <androidx.appcompat.widget.AppCompatImageView
