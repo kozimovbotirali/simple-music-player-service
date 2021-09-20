@@ -57,26 +57,35 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
         override fun onReceive(context: Context, intent: Intent) {
             val command = intent.extras?.getSerializable(Constants.COMMAND_DATA) as? ServiceCommand
             timberErrorLog(command?.name.toString())
-            doCommand(command)
+            binding.apply {
+                when (command) {
+                    ServiceCommand.PLAY -> {
+                        btnPlayPause.setImageResource(R.drawable.ic_pause)
+                    }
+                    ServiceCommand.PAUSE -> {
+                        btnPlayPause.setImageResource(R.drawable.ic_play)
+                    }
+                    else -> {
+                    }
+                }
+            }
         }
     }
 
-    private fun doCommand(command: ServiceCommand?) {
-        binding.apply {
-            when (command) {
-                ServiceCommand.PLAY -> {
-                    btnPlayPause.setImageResource(R.drawable.ic_pause)
-                }
-                ServiceCommand.PAUSE -> {
-                    btnPlayPause.setImageResource(R.drawable.ic_play)
-                }
-                ServiceCommand.PREV -> {
-                    prevClicked()
-                }
-                ServiceCommand.NEXT -> {
-                    nextClicked()
-                }
-                else -> {
+    private val notificationClickReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val command = intent.extras?.getSerializable(Constants.COMMAND_DATA) as? ServiceCommand
+            timberErrorLog(command?.name.toString())
+            binding.apply {
+                when (command) {
+                    ServiceCommand.PREV -> {
+                        prevClicked()
+                    }
+                    ServiceCommand.NEXT -> {
+                        nextClicked()
+                    }
+                    else -> {
+                    }
                 }
             }
         }
@@ -89,6 +98,7 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
 
     private fun loadViews() {
         requireContext().registerReceiver(clickReceiver, IntentFilter(Constants.ACTION_PLAYER))
+        requireContext().registerReceiver(notificationClickReceiver, IntentFilter(Constants.NOTIFICATION_ACTION_PLAYER))
 
         binding.apply {
             list.layoutManager =
@@ -107,13 +117,13 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
             }
 
             btnNext.setOnClickListener {
-                val intent = Intent(Constants.ACTION_PLAYER)
+                val intent = Intent(Constants.NOTIFICATION_ACTION_PLAYER)
                 intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.NEXT)
                 requireContext().sendBroadcast(intent)
             }
 
             btnPrev.setOnClickListener {
-                val intent = Intent(Constants.ACTION_PLAYER)
+                val intent = Intent(Constants.NOTIFICATION_ACTION_PLAYER)
                 intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.PREV)
                 requireContext().sendBroadcast(intent)
             }
@@ -239,6 +249,7 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
         binding.list.adapter = null
         binding.list.removeItemDecoration(itemDecoration)
         requireContext().unregisterReceiver(clickReceiver)
+        requireContext().unregisterReceiver(notificationClickReceiver)
         super.onDestroyView()
     }
 

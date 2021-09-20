@@ -104,7 +104,7 @@ class MusicService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        registerReceiver(clickReceiver, IntentFilter(Constants.ACTION_PLAYER))
+        registerReceiver(clickReceiver, IntentFilter(Constants.NOTIFICATION_ACTION_PLAYER))
         timberLog("onCreate")
     }
 
@@ -227,7 +227,7 @@ class MusicService : Service() {
                 }
             }
             else -> {
-                val intent = Intent(Constants.ACTION_PLAYER)
+                val intent = Intent(Constants.NOTIFICATION_ACTION_PLAYER)
                 intent.putExtra(Constants.COMMAND_DATA, serviceCommand)
                 sendBroadcast(intent)
             }
@@ -239,6 +239,11 @@ class MusicService : Service() {
             _mediaPlayer?.stop()
             _mediaPlayer?.prepare()
             _mediaPlayer = MediaPlayer.create(this, Uri.fromFile(File(it)))
+            _mediaPlayer?.setOnCompletionListener {
+                val intent = Intent(Constants.ACTION_PLAYER)
+                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.NEXT)
+                sendBroadcast(intent)
+            }
         }
     }
 

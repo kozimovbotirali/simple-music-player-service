@@ -64,7 +64,8 @@ fun Context.getPlayList(): Flow<Cursor> = flow {
                 3
             ) + "||" + cursor.getString(4) + "||" + cursor.getString(5)
         )
-//        timberLog(songs.last())
+        timberErrorLog(songs.toString())
+        timberErrorLog(songs.size.toString())
     }
     emit(cursor)
 }.flowOn(Dispatchers.IO)

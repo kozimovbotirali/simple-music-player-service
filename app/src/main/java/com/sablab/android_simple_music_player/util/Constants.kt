@@ -8,6 +8,7 @@ class Constants {
         const val MUSIC_DATA = "musicData"
         const val COMMAND_DATA: String = "ServiceCommand"
         const val ACTION_PLAYER = "com.sablab.android_simple_music_player.util.ACTION_PLAYER"
+        const val NOTIFICATION_ACTION_PLAYER = "com.sablab.android_simple_music_player.util.NOTIFICATION_ACTION_PLAYER"
 
         // Notification Constants
         const val channelID = "music_player_notification_channel_id"
