@@ -98,7 +98,10 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
 
     private fun loadViews() {
         requireContext().registerReceiver(clickReceiver, IntentFilter(Constants.ACTION_PLAYER))
-        requireContext().registerReceiver(notificationClickReceiver, IntentFilter(Constants.NOTIFICATION_ACTION_PLAYER))
+        requireContext().registerReceiver(
+            notificationClickReceiver,
+            IntentFilter(Constants.NOTIFICATION_ACTION_PLAYER)
+        )
 
         binding.apply {
             list.layoutManager =

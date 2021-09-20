@@ -41,7 +41,7 @@ val projection = arrayOf(
     MediaStore.Audio.Media.DATA, //3
     MediaStore.Audio.Media.DISPLAY_NAME, //4
     MediaStore.Audio.Media.DURATION, //5
-    MediaStore.Audio.Media.ALBUM_ID //5
+    MediaStore.Audio.Media.ALBUM_ID //6
 )
 
 fun Context.getPlayList(): Flow<Cursor> = flow {

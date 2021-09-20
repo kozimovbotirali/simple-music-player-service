@@ -122,11 +122,10 @@ class MusicService : Service() {
     }
 
     @SuppressLint("UnspecifiedImmutableFlag")
-    private fun createPendingIntent(serviceCommand: ServiceCommand, block: (() -> Unit)? = null): PendingIntent {
+    private fun createPendingIntent(serviceCommand: ServiceCommand): PendingIntent {
         val intent = Intent(this, MusicService::class.java)
         intent.putExtra(Constants.COMMAND_DATA, serviceCommand)
         intent.putExtra(Constants.MUSIC_DATA, currentMusic)
-        block?.invoke()
         return PendingIntent.getService(
             this, serviceCommand.ordinal, intent,
             PendingIntent.FLAG_UPDATE_CURRENT
@@ -236,6 +235,7 @@ class MusicService : Service() {
 
     private fun prepareMediaPlayer(data: Music?) {
         data?.data?.let {
+            timberErrorLog(it)
             _mediaPlayer?.stop()
             _mediaPlayer?.prepare()
             _mediaPlayer = MediaPlayer.create(this, Uri.fromFile(File(it)))
