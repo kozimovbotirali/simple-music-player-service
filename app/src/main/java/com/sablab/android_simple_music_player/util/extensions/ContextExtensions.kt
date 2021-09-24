@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package com.sablab.android_simple_music_player.util.extensions
 
 import android.content.ContentUris
@@ -12,6 +10,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import com.sablab.android_simple_music_player.R
+import com.sablab.android_simple_music_player.app.App
 import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.util.timberErrorLog
 import kotlinx.coroutines.Dispatchers
@@ -41,10 +40,10 @@ val projection = arrayOf(
     MediaStore.Audio.Media.DATA, //3
     MediaStore.Audio.Media.DISPLAY_NAME, //4
     MediaStore.Audio.Media.DURATION, //5
-    MediaStore.Audio.Media.ALBUM_ID //5
+    MediaStore.Audio.Media.ALBUM_ID //6
 )
 
-fun Context.getPlayList(): Flow<Cursor> = flow {
+fun Context.getPlayListCursor(): Flow<Cursor> = flow {
     //Some audio may be explicitly marked as not being music
     val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
 
@@ -56,17 +55,6 @@ fun Context.getPlayList(): Flow<Cursor> = flow {
         null
     ) ?: return@flow
 
-    val songs: MutableList<String> = ArrayList()
-    while (cursor.moveToNext()) {
-        songs.add(
-            cursor.getString(0)
-                .toString() + "||" + cursor.getString(1) + "||" + cursor.getString(2) + "||" + cursor.getString(
-                3
-            ) + "||" + cursor.getString(4) + "||" + cursor.getString(5)
-        )
-        timberErrorLog(songs.toString())
-        timberErrorLog(songs.size.toString())
-    }
     emit(cursor)
 }.flowOn(Dispatchers.IO)
 
@@ -80,18 +68,24 @@ fun Context.getAudioInfo(path: String): Music? {
         ""
     ) ?: return null
 
-    val music = Music()
+    var music: Music? = null
     while (cursor.moveToNext()) {
-        music.id = cursor.getLong(ID)
-        music.artist = cursor.getString(ARTIST)
-        music.title = cursor.getString(TITLE)
-        music.data = cursor.getString(DATA)
-        music.displayName = cursor.getString(DISPLAY_NAME)
-        music.duration = cursor.getLong(DURATION)
-        music.imageUri = songArt(cursor.getLong(ALBUM_ID))
+        music = cursor.toMusicData()
     }
     cursor.close()
     return music
+}
+
+fun Cursor.toMusicData(): Music {
+    return Music(
+        id = getLong(ID),
+        artist = getString(ARTIST),
+        title = getString(TITLE),
+        data = getString(DATA),
+        displayName = getString(DISPLAY_NAME),
+        duration = getLong(DURATION),
+        imageUri = App.instance.songArt(getLong(ALBUM_ID))
+    )
 }
 
 fun Context.songArt(path: String): Bitmap? {

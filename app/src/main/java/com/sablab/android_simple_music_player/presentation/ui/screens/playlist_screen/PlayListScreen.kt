@@ -1,9 +1,6 @@
 package com.sablab.android_simple_music_player.presentation.ui.screens.playlist_screen
 
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -13,25 +10,25 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.sablab.android_simple_music_player.R
 import com.sablab.android_simple_music_player.data.models.Music
+import com.sablab.android_simple_music_player.data.models.enums.MusicState
 import com.sablab.android_simple_music_player.data.models.enums.ServiceCommand
 import com.sablab.android_simple_music_player.data.sources.local.LocalStorage
 import com.sablab.android_simple_music_player.databinding.ScreenPlaylistBinding
+import com.sablab.android_simple_music_player.playback.EventBus
 import com.sablab.android_simple_music_player.playback.MusicService
 import com.sablab.android_simple_music_player.presentation.ui.adapters.MusicsAdapter
 import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.checkPermissions
 import com.sablab.android_simple_music_player.util.custom.ItemDecorationWithLeftPadding
 import com.sablab.android_simple_music_player.util.custom.dpToPx
-import com.sablab.android_simple_music_player.util.extensions.getAudioInfo
-import com.sablab.android_simple_music_player.util.extensions.getPlayList
+import com.sablab.android_simple_music_player.util.extensions.getPlayListCursor
 import com.sablab.android_simple_music_player.util.extensions.loadImage
+import com.sablab.android_simple_music_player.util.extensions.toMusicData
 import com.sablab.android_simple_music_player.util.timberErrorLog
-import com.sablab.android_simple_music_player.util.timberLog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -46,59 +43,50 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
     @Inject
     lateinit var storage: LocalStorage
 
-    private var playingData: Music? = null
-
     private val adapter = MusicsAdapter()
     private val itemDecoration by lazy {
         ItemDecorationWithLeftPadding(requireContext(), 85.dpToPx(requireContext()))
     }
 
-    private val clickReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val command = intent.extras?.getSerializable(Constants.COMMAND_DATA) as? ServiceCommand
-            timberErrorLog(command?.name.toString())
-            binding.apply {
-                when (command) {
-                    ServiceCommand.PLAY -> {
-                        btnPlayPause.setImageResource(R.drawable.ic_pause)
-                    }
-                    ServiceCommand.PAUSE -> {
-                        btnPlayPause.setImageResource(R.drawable.ic_play)
-                    }
-                    else -> {
-                    }
-                }
-            }
-        }
-    }
-
-    private val notificationClickReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val command = intent.extras?.getSerializable(Constants.COMMAND_DATA) as? ServiceCommand
-            timberErrorLog(command?.name.toString())
-            binding.apply {
-                when (command) {
-                    ServiceCommand.PREV -> {
-                        prevClicked()
-                    }
-                    ServiceCommand.NEXT -> {
-                        nextClicked()
-                    }
-                    else -> {
-                    }
-                }
-            }
-        }
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         loadViews()
         loadData()
+        loadObservers()
+    }
+
+    private fun loadObservers() {
+        EventBus.musicStateLiveData.observe(viewLifecycleOwner) {
+            binding.apply {
+                when (it) {
+                    is MusicState.PAUSE -> {
+                        btnPlayPause.setImageResource(R.drawable.ic_play)
+                    }
+                    is MusicState.PLAYING -> {
+                        btnPlayPause.setImageResource(R.drawable.ic_pause)
+                        it.data?.let { it1 -> loadPlayingData(it1) }
+                    }
+                    is MusicState.STOP -> {
+                        btnPlayPause.setImageResource(R.drawable.ic_play)
+                    }
+                    is MusicState.NEXT_OR_PREV -> {
+                        btnPlayPause.setImageResource(R.drawable.ic_pause)
+                        it.data?.let { it1 -> loadPlayingData(it1) }
+                        list.scrollToPosition(it.position)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadPlayingData(it: Music) {
+        binding.apply {
+            textName.text = it.title
+            textAuthorName.text = it.artist
+            it.imageUri.let { it1 -> image.loadImage(it1) }
+        }
     }
 
     private fun loadViews() {
-        requireContext().registerReceiver(clickReceiver, IntentFilter(Constants.ACTION_PLAYER))
-        requireContext().registerReceiver(notificationClickReceiver, IntentFilter(Constants.NOTIFICATION_ACTION_PLAYER))
 
         binding.apply {
             list.layoutManager =
@@ -107,34 +95,27 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
             list.adapter = adapter
 
             adapter.setOnItemClickListener {
-                startMusicService(it, ServiceCommand.PLAY_NEW)
-                btnPlayPause.setImageResource(R.drawable.ic_pause)
-
-                storage.lastPlayedData = it.data ?: ""
-                playingData = it
-
-                loadPlayingData(it)
+                requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    storage.lastPlayedPosition = it
+                    startMusicService(serviceCommand = ServiceCommand.PLAY_NEW)
+                }
             }
 
             btnNext.setOnClickListener {
-                val intent = Intent(Constants.NOTIFICATION_ACTION_PLAYER)
-                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.NEXT)
-                requireContext().sendBroadcast(intent)
+                requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    startMusicService(serviceCommand = ServiceCommand.NEXT)
+                }
             }
 
             btnPrev.setOnClickListener {
-                val intent = Intent(Constants.NOTIFICATION_ACTION_PLAYER)
-                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.PREV)
-                requireContext().sendBroadcast(intent)
+                requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    startMusicService(serviceCommand = ServiceCommand.PREV)
+                }
             }
 
             btnPlayPause.setOnClickListener {
-                if (storage.isPlaying) {
-                    startMusicService(playingData, serviceCommand = ServiceCommand.PAUSE)
-                    btnPlayPause.setImageResource(R.drawable.ic_play)
-                } else {
-                    startMusicService(playingData, serviceCommand = ServiceCommand.PLAY)
-                    btnPlayPause.setImageResource(R.drawable.ic_pause)
+                requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    startMusicService(serviceCommand = ServiceCommand.PLAY_PAUSE)
                 }
             }
 
@@ -149,85 +130,12 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
             } else {
                 btnPlayPause.setImageResource(R.drawable.ic_play)
             }
-
-            if (storage.lastPlayedData.isNotEmpty()) {
-                loadLastMusicData()
-            }
         }
     }
 
-    private fun prevClicked() {
-        binding.apply {
-            try {
-                val pos = Constants.allMusics.indexOf(playingData?.data)
-
-                var t = pos - 1
-                if (t <= 0)
-                    t = 0
-
-                if (t < Constants.allMusics.size) {
-                    Constants.allMusics.toList()[t].let { it1 ->
-                        playingData = requireContext().getAudioInfo(it1)
-                    }
-                }
-//                startMusicService(playingData, serviceCommand = ServiceCommand.PLAY)
-                btnPlayPause.setImageResource(R.drawable.ic_pause)
-                playingData?.let {
-                    storage.lastPlayedData = it.data ?: ""
-                    loadPlayingData(it)
-                }
-                list.scrollToPosition(t)
-            } catch (e: Exception) {
-                timberErrorLog(e.message.toString())
-            }
-        }
-    }
-
-    private fun nextClicked() {
-        binding.apply {
-            try {
-                val pos = Constants.allMusics.indexOf(playingData?.data)
-
-                val t = pos + 1
-                if (t < Constants.allMusics.size) {
-                    Constants.allMusics.toList()[t].let { it1 ->
-                        playingData = requireContext().getAudioInfo(it1)
-                    }
-                }
-//                startMusicService(playingData, serviceCommand = ServiceCommand.PLAY)
-                btnPlayPause.setImageResource(R.drawable.ic_pause)
-                playingData?.let {
-                    storage.lastPlayedData = it.data ?: ""
-                    loadPlayingData(it)
-                }
-                list.scrollToPosition(t)
-            } catch (e: Exception) {
-                timberErrorLog(e.message.toString())
-            }
-        }
-    }
-
-    private fun loadLastMusicData() {
-        lifecycleScope.launch {
-            playingData = requireContext().getAudioInfo(storage.lastPlayedData)
-            playingData?.let {
-                loadPlayingData(it)
-            }
-        }
-    }
-
-    private fun loadPlayingData(it: Music) {
-        binding.apply {
-            textName.text = it.title
-            textAuthorName.text = it.artist
-            it.imageUri.let { it1 -> image.loadImage(it1) }
-        }
-    }
-
-    private fun startMusicService(data: Music? = null, serviceCommand: ServiceCommand) {
+    private fun startMusicService(serviceCommand: ServiceCommand) {
         val intent = Intent(context, MusicService::class.java)
         intent.putExtra(Constants.COMMAND_DATA, serviceCommand)
-        intent.putExtra(Constants.MUSIC_DATA, data)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             requireContext().startForegroundService(intent)
@@ -238,9 +146,22 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
 
     private fun loadData() {
         requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
-            requireActivity().getPlayList()
-                .onEach { adapter.swapCursor(it) }
-                .catch { timberLog(this.toString()) }
+            requireActivity().getPlayListCursor()
+                .onEach {
+                    adapter.swapCursor(it)
+
+                    if (storage.isPlaying && EventBus.musicStateLiveData.value != null) {
+                        EventBus.musicStateLiveData.value?.data?.let { it1 -> loadPlayingData(it1) }
+                    } else {
+                        storage.lastPlayedPosition.let { pos ->
+                            binding.list.scrollToPosition(pos)
+                            if (it.moveToPosition(pos)) {
+                                loadPlayingData(it.toMusicData())
+                            }
+                        }
+                    }
+                }
+                .catch { timberErrorLog(this.toString()) }
                 .launchIn(lifecycleScope)
         }
     }
@@ -248,15 +169,6 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
     override fun onDestroyView() {
         binding.list.adapter = null
         binding.list.removeItemDecoration(itemDecoration)
-        requireContext().unregisterReceiver(clickReceiver)
-        requireContext().unregisterReceiver(notificationClickReceiver)
         super.onDestroyView()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (!storage.isPlaying) {
-            requireContext().stopService(Intent(context, MusicService::class.java))
-        }
     }
 }

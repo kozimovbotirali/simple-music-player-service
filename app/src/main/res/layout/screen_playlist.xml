@@ -43,12 +43,12 @@
                 android:layout_width="@dimen/_52dp"
                 android:layout_height="@dimen/_52dp"
                 android:contentDescription="@string/app_name"
-                android:src="@drawable/ic_music"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:radius="15"
-                tools:ignore="ImageContrastCheck" />
+                tools:ignore="ImageContrastCheck"
+                tools:src="@drawable/ic_music" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/text_name"

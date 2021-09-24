@@ -8,7 +8,7 @@ import android.provider.Settings
 import com.nabinbhandari.android.permissions.PermissionHandler
 import com.nabinbhandari.android.permissions.Permissions
 import timber.log.Timber
-import java.util.ArrayList
+import java.util.*
 
 
 fun timberLog(st: String, tag: String = "T12T") {
@@ -24,7 +24,7 @@ fun Activity.checkPermissions(permission: Array<String>, granted: () -> Unit) {
         this,
         permission,
         null, null,
-        permissionHandler(granted, { goToSettings() }, { goToSettings() }, { goToSettings() })
+        permissionHandler(granted, { }, { }, { })
     )
 }
 

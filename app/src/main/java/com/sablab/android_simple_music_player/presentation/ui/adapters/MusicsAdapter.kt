@@ -5,11 +5,11 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.sablab.android_simple_music_player.R
-import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.databinding.ItemMusicBinding
-import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.custom.CursorAdapter
-import com.sablab.android_simple_music_player.util.extensions.*
+import com.sablab.android_simple_music_player.util.extensions.loadImage
+import com.sablab.android_simple_music_player.util.extensions.toMusicData
+import com.sablab.android_simple_music_player.util.timberLog
 
 class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
     private var itemClickListener: OnItemClick? = null
@@ -22,22 +22,14 @@ class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
             }
         }
 
-        fun bind() {
+        fun bind(position: Int) {
             binding.apply {
-                val data = Music(
-                    id = cursor.getLong(ID),
-                    artist = cursor.getString(ARTIST),
-                    title = cursor.getString(TITLE),
-                    data = cursor.getString(DATA),
-                    displayName = cursor.getString(DISPLAY_NAME),
-                    duration = cursor.getLong(DURATION),
-                    imageUri = root.context.songArt(cursor.getLong(ALBUM_ID))
-                )
-                data.data?.let { Constants.allMusics.add(it) }
+                val data = cursor.toMusicData()
+
                 textName.text = data.title
                 textAuthorName.text = data.artist
 
-                root.setOnClickListener { itemClickListener?.onClick(data) }
+                root.setOnClickListener { itemClickListener?.onClick(position) }
                 if (data.imageUri == null) {
                     image.setImageResource(R.drawable.ic_music)
                 } else {
@@ -62,10 +54,10 @@ class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
     }
 
     fun interface OnItemClick {
-        fun onClick(item: Music)
+        fun onClick(itemPosition: Int)
     }
 
     override fun onBindViewHolder(holder: MusicViewHolder, cursor: Cursor, position: Int) {
-        holder.bind()
+        holder.bind(position)
     }
 }
