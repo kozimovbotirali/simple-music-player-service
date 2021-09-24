@@ -43,7 +43,7 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
     @Inject
     lateinit var storage: LocalStorage
 
-    private val adapter = MusicsAdapter()
+    private val adapter by lazy { MusicsAdapter(storage) }
     private val itemDecoration by lazy {
         ItemDecorationWithLeftPadding(requireContext(), 85.dpToPx(requireContext()))
     }
@@ -64,6 +64,9 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
                     is MusicState.PLAYING -> {
                         btnPlayPause.setImageResource(R.drawable.ic_pause)
                         it.data?.let { it1 -> loadPlayingData(it1) }
+
+                        adapter.notifyItemChanged(it.position)
+                        adapter.notifyItemChanged(adapter.lastSelected)
                     }
                     is MusicState.STOP -> {
                         btnPlayPause.setImageResource(R.drawable.ic_play)
@@ -72,6 +75,9 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
                         btnPlayPause.setImageResource(R.drawable.ic_pause)
                         it.data?.let { it1 -> loadPlayingData(it1) }
                         list.scrollToPosition(it.position)
+
+                        adapter.notifyItemChanged(it.position)
+                        adapter.notifyItemChanged(adapter.lastSelected)
                     }
                 }
             }
@@ -157,6 +163,8 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
                             binding.list.scrollToPosition(pos)
                             if (it.moveToPosition(pos)) {
                                 loadPlayingData(it.toMusicData())
+                                // TODO: 24.09.2021 next after start
+                                startMusicService(serviceCommand = ServiceCommand.STOP)
                             }
                         }
                     }

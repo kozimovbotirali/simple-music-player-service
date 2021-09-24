@@ -3,16 +3,18 @@ package com.sablab.android_simple_music_player.presentation.ui.adapters
 import android.database.Cursor
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.sablab.android_simple_music_player.R
+import com.sablab.android_simple_music_player.data.sources.local.LocalStorage
 import com.sablab.android_simple_music_player.databinding.ItemMusicBinding
 import com.sablab.android_simple_music_player.util.custom.CursorAdapter
 import com.sablab.android_simple_music_player.util.extensions.loadImage
 import com.sablab.android_simple_music_player.util.extensions.toMusicData
-import com.sablab.android_simple_music_player.util.timberLog
 
-class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
+class MusicsAdapter(val storage: LocalStorage) : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
     private var itemClickListener: OnItemClick? = null
+    var lastSelected = 0
 
     inner class MusicViewHolder(private val binding: ItemMusicBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -34,6 +36,15 @@ class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
                     image.setImageResource(R.drawable.ic_music)
                 } else {
                     image.loadImage(data.imageUri!!)
+                }
+
+                if (storage.lastPlayedPosition == cursor.position) {
+                    lastSelected = cursor.position
+                    textName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.current_text_color))
+                    textAuthorName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.current_text_info_color))
+                } else {
+                    textName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.text_color))
+                    textAuthorName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.text_info_color))
                 }
             }
         }
