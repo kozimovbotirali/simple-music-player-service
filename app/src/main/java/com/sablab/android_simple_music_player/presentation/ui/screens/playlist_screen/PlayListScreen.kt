@@ -102,8 +102,12 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
 
             adapter.setOnItemClickListener {
                 requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                    storage.lastPlayedPosition = it
-                    startMusicService(serviceCommand = ServiceCommand.PLAY_NEW)
+                    if (it == storage.lastPlayedPosition) {
+                        startMusicService(serviceCommand = ServiceCommand.PLAY_PAUSE)
+                    } else {
+                        storage.lastPlayedPosition = it
+                        startMusicService(serviceCommand = ServiceCommand.PLAY_NEW)
+                    }
                 }
             }
 
@@ -156,15 +160,19 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
                 .onEach {
                     adapter.swapCursor(it)
 
-                    if (storage.isPlaying && EventBus.musicStateLiveData.value != null) {
-                        EventBus.musicStateLiveData.value?.data?.let { it1 -> loadPlayingData(it1) }
+                    if (EventBus.musicStateLiveData.value != null) {
+                        EventBus.musicStateLiveData.value?.let { musicState ->
+                            musicState.data?.let { it2 -> loadPlayingData(it2) }
+                            binding.list.scrollToPosition(musicState.position)
+                        }
                     } else {
                         storage.lastPlayedPosition.let { pos ->
-                            binding.list.scrollToPosition(pos)
                             if (it.moveToPosition(pos)) {
-                                loadPlayingData(it.toMusicData())
+                                val data = it.toMusicData()
+                                binding.list.scrollToPosition(pos)
+                                loadPlayingData(data)
                                 // TODO: 24.09.2021 next after start
-                                startMusicService(serviceCommand = ServiceCommand.STOP)
+                                startMusicService(serviceCommand = ServiceCommand.INIT)
                             }
                         }
                     }

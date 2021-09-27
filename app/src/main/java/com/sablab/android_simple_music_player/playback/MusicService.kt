@@ -169,6 +169,15 @@ class MusicService : Service() {
                 EventBus.musicStateLiveData.postValue(MusicState.STOP(storage.lastPlayedPosition, currentMusic))
                 storage.isPlaying = false
             }
+            ServiceCommand.INIT -> {
+                if (_mediaPlayer == null) {
+                    prepareMediaPlayer()
+                }
+//                stopSelf()
+
+                EventBus.musicStateLiveData.postValue(MusicState.STOP(storage.lastPlayedPosition, currentMusic))
+                storage.isPlaying = false
+            }
             ServiceCommand.PREV -> {
                 prevMusic()
             }
