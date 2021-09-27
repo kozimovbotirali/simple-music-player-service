@@ -33,9 +33,9 @@ class MusicsAdapter(val storage: LocalStorage) : CursorAdapter<MusicsAdapter.Mus
 
                 root.setOnClickListener { itemClickListener?.onClick(position) }
                 if (data.imageUri == null) {
-                    image.setImageResource(R.drawable.ic_music)
+                    image.loadImage(R.drawable.ic_music, 15)
                 } else {
-                    image.loadImage(data.imageUri!!)
+                    image.loadImage(data.imageUri!!, 15)
                 }
 
                 if (storage.lastPlayedPosition == cursor.position) {

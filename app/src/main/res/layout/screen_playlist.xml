@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/black"
     tools:context="com.sablab.android_simple_music_player.presentation.ui.screens.playlist_screen.PlayListScreen">
 
     <androidx.recyclerview.widget.RecyclerView
@@ -30,6 +31,7 @@
         app:strokeWidth="1dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layout_bottom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/black"
@@ -38,20 +40,21 @@
             android:paddingHorizontal="10dp"
             android:paddingVertical="@dimen/_10dp">
 
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/image"
+            <ImageView
+                android:id="@+id/image_bottom"
                 android:layout_width="@dimen/_52dp"
                 android:layout_height="@dimen/_52dp"
+                android:layout_marginStart="@dimen/_10dp"
                 android:contentDescription="@string/app_name"
+                android:transitionName="@string/app_name"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:radius="15"
                 tools:ignore="ImageContrastCheck"
                 tools:src="@drawable/ic_music" />
 
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_name"
+                android:id="@+id/text_name_bottom"
                 style="@style/TextMedium"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -64,15 +67,15 @@
                 android:maxLines="1"
                 android:scrollHorizontally="true"
                 android:singleLine="true"
-                app:layout_constraintBottom_toTopOf="@id/text_author_name"
-                app:layout_constraintLeft_toRightOf="@id/image"
+                app:layout_constraintBottom_toTopOf="@id/text_author_name_bottom"
+                app:layout_constraintLeft_toRightOf="@id/image_bottom"
                 app:layout_constraintRight_toLeftOf="@id/layout_actions"
-                app:layout_constraintTop_toTopOf="@id/image"
+                app:layout_constraintTop_toTopOf="@id/image_bottom"
                 app:layout_constraintVertical_chainStyle="packed"
                 tools:text="@string/music_name" />
 
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_author_name"
+                android:id="@+id/text_author_name_bottom"
                 style="@style/TextSmall"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -86,10 +89,10 @@
                 android:scrollHorizontally="true"
                 android:singleLine="true"
                 android:textColor="@color/text_info_color"
-                app:layout_constraintBottom_toBottomOf="@id/image"
-                app:layout_constraintLeft_toRightOf="@id/image"
+                app:layout_constraintBottom_toBottomOf="@id/image_bottom"
+                app:layout_constraintLeft_toRightOf="@id/image_bottom"
                 app:layout_constraintRight_toLeftOf="@id/layout_actions"
-                app:layout_constraintTop_toBottomOf="@id/text_name"
+                app:layout_constraintTop_toBottomOf="@id/text_name_bottom"
                 tools:text="@string/artist" />
 
             <androidx.appcompat.widget.LinearLayoutCompat

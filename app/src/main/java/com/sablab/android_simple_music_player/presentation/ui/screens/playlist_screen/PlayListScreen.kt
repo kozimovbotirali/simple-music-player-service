@@ -1,12 +1,20 @@
 package com.sablab.android_simple_music_player.presentation.ui.screens.playlist_screen
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.transition.TransitionInflater
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.app.SharedElementCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.FragmentNavigatorExtras
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.sablab.android_simple_music_player.R
 import com.sablab.android_simple_music_player.data.models.Music
@@ -20,7 +28,7 @@ import com.sablab.android_simple_music_player.presentation.ui.adapters.MusicsAda
 import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.checkPermissions
 import com.sablab.android_simple_music_player.util.custom.ItemDecorationWithLeftPadding
-import com.sablab.android_simple_music_player.util.custom.dpToPx
+import com.sablab.android_simple_music_player.util.dpToPx
 import com.sablab.android_simple_music_player.util.extensions.getPlayListCursor
 import com.sablab.android_simple_music_player.util.extensions.loadImage
 import com.sablab.android_simple_music_player.util.extensions.toMusicData
@@ -34,7 +42,6 @@ import javax.inject.Inject
 /**
  * Created by Botirali Kozimov on 19/09/2021
  */
-
 @AndroidEntryPoint
 class PlayListScreen : Fragment(R.layout.screen_playlist) {
 
@@ -48,14 +55,39 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
         ItemDecorationWithLeftPadding(requireContext(), 85.dpToPx(requireContext()))
     }
 
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        exitTransition = TransitionInflater.from(requireContext())
+            .inflateTransition(R.transition.grid_exit_transition)
+
+        // A similar mapping is set at the ImagePagerFragment with a setEnterSharedElementCallback.
+        setExitSharedElementCallback(
+            object : SharedElementCallback() {
+                override fun onMapSharedElements(names: List<String>, sharedElements: MutableMap<String, View>) {
+                    try {
+                        val image = view?.findViewById<View>(R.id.image_bottom)
+                        // Map the first shared element name to the child ImageView.
+                        image?.let { sharedElements[names[0]] = image }
+                    } catch (e: Exception) {
+                        timberErrorLog(e.message.toString())
+                    }
+                }
+            })
+
+        if (adapter.itemCount != 0) {
+            postponeEnterTransition()
+        }
+        return super.onCreateView(inflater, container, savedInstanceState)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         loadViews()
         loadData()
         loadObservers()
     }
 
+    @SuppressLint("FragmentLiveDataObserve")
     private fun loadObservers() {
-        EventBus.musicStateLiveData.observe(viewLifecycleOwner) {
+        EventBus.musicStateLiveData.observe(this) {
             binding.apply {
                 when (it) {
                     is MusicState.PAUSE -> {
@@ -86,9 +118,16 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
 
     private fun loadPlayingData(it: Music) {
         binding.apply {
-            textName.text = it.title
-            textAuthorName.text = it.artist
-            it.imageUri.let { it1 -> image.loadImage(it1) }
+            textNameBottom.text = it.title
+            textAuthorNameBottom.text = it.artist
+            if (it.imageUri != null) {
+                imageBottom.loadImage(it.imageUri) {
+                    startPostponedEnterTransition()
+                }
+            } else {
+                imageBottom.loadImage(R.drawable.ic_music)
+                startPostponedEnterTransition()
+            }
         }
     }
 
@@ -106,6 +145,7 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
                         startMusicService(serviceCommand = ServiceCommand.PLAY_PAUSE)
                     } else {
                         storage.lastPlayedPosition = it
+                        storage.lastPlayedDuration = 0
                         startMusicService(serviceCommand = ServiceCommand.PLAY_NEW)
                     }
                 }
@@ -132,13 +172,24 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
             /**
              * Its used to make author name and title textview s scrollable(horizontally)
              */
-            textName.isSelected = true
-            textAuthorName.isSelected = true
+            textNameBottom.isSelected = true
+            textAuthorNameBottom.isSelected = true
 
             if (storage.isPlaying) {
                 btnPlayPause.setImageResource(R.drawable.ic_pause)
             } else {
                 btnPlayPause.setImageResource(R.drawable.ic_play)
+            }
+
+            layoutBottom.setOnClickListener {
+                try {
+                    val extras = FragmentNavigatorExtras(
+                        imageBottom to (Constants.FOR_IMAGE_LIST + storage.lastPlayedPosition)
+                    )
+                    findNavController().navigate(PlayListScreenDirections.actionPlayListScreenToSongIngoScreen(), extras)
+                } catch (e: Exception) {
+                    timberErrorLog(e.message.toString())
+                }
             }
         }
     }
@@ -157,6 +208,7 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
     private fun loadData() {
         requireActivity().checkPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
             requireActivity().getPlayListCursor()
+                .catch { timberErrorLog(this.toString()) }
                 .onEach {
                     adapter.swapCursor(it)
 
@@ -176,15 +228,13 @@ class PlayListScreen : Fragment(R.layout.screen_playlist) {
                             }
                         }
                     }
-                }
-                .catch { timberErrorLog(this.toString()) }
-                .launchIn(lifecycleScope)
+                }.launchIn(lifecycleScope)
         }
     }
 
     override fun onDestroyView() {
-        binding.list.adapter = null
-        binding.list.removeItemDecoration(itemDecoration)
+        view?.findViewById<RecyclerView>(R.id.list)?.adapter = null
+        view?.findViewById<RecyclerView>(R.id.list)?.removeItemDecoration(itemDecoration)
         super.onDestroyView()
     }
 }

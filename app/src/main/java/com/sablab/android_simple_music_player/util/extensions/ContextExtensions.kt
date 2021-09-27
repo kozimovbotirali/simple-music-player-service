@@ -99,7 +99,7 @@ fun Context.songArt(path: String): Bitmap? {
         bitmap
     } else {
         retriever.release()
-        getLargeIcon(this)
+        null
     }
 }
 
@@ -119,6 +119,9 @@ fun Context.songArt(albumId: Long): Uri? {
     return null
 }
 
-private fun getLargeIcon(context: Context): Bitmap? {
+fun getLargeIcon(context: Context): Bitmap? {
     return BitmapFactory.decodeResource(context.resources, R.drawable.ic_music)
 }
+
+val Context.defaultBitmap: Bitmap
+    get() = BitmapFactory.decodeResource(this.resources, R.drawable.ic_music)

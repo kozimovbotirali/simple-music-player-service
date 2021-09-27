@@ -21,6 +21,7 @@ class LocalStorage private constructor(context: Context) {
     var isPlaying: Boolean by BooleanPreference(pref, false)
 
     var lastPlayedPosition: Int by IntPreference(pref, 0)
+    var lastPlayedDuration: Int by IntPreference(pref, 0)
 
     fun clear() {
         pref.edit().clear().apply()

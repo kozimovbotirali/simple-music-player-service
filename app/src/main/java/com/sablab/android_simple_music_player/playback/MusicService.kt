@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
@@ -14,6 +13,7 @@ import android.net.Uri
 import android.os.IBinder
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.LifecycleService
 import com.sablab.android_simple_music_player.R
 import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.data.models.enums.MusicState
@@ -27,19 +27,17 @@ import com.sablab.android_simple_music_player.util.extensions.toMusicData
 import com.sablab.android_simple_music_player.util.timberErrorLog
 import com.sablab.android_simple_music_player.util.timberLog
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MusicService : Service() {
+class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListener*/ {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var durationJob: Job? = null
+    private var currentDuration: Int = 0
+
     private var _mediaPlayer: MediaPlayer? = null
     private var currentMusic: Music? = null
 
@@ -67,6 +65,10 @@ class MusicService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForeground(Constants.notificationId, getNotification())
+        EventBus.progressChangeLiveData.observe(this) {
+            _mediaPlayer?.seekTo(it)
+            currentDuration = it
+        }
         timberLog("onCreate")
     }
 
@@ -116,6 +118,7 @@ class MusicService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         val command =
             intent?.extras?.getSerializable(Constants.COMMAND_DATA) as? ServiceCommand
 
@@ -134,12 +137,14 @@ class MusicService : Service() {
     }
 
     private fun doCommand(serviceCommand: ServiceCommand?) {
+//        if (checkAudioFocusState())
         when (serviceCommand) {
             ServiceCommand.PLAY_NEW -> {
                 prepareMediaPlayer()
                 _mediaPlayer?.start()
+                startSendDuration()
 
-                notifyNotification()
+                startForeground(Constants.notificationId, getNotification())
 
                 EventBus.musicStateLiveData.postValue(MusicState.PLAYING(storage.lastPlayedPosition, currentMusic))
                 storage.isPlaying = true
@@ -147,7 +152,9 @@ class MusicService : Service() {
             ServiceCommand.PLAY_PAUSE -> {
                 if (_mediaPlayer?.isPlaying == true) {
                     _mediaPlayer?.pause()
+                    durationJob?.cancel()
                     notifyNotification()
+                    stopForeground(false)
 
                     EventBus.musicStateLiveData.postValue(MusicState.PAUSE(storage.lastPlayedPosition, currentMusic))
                     storage.isPlaying = false
@@ -156,7 +163,8 @@ class MusicService : Service() {
                         prepareMediaPlayer()
                     }
                     _mediaPlayer?.start()
-                    notifyNotification()
+                    startSendDuration()
+                    startForeground(Constants.notificationId, getNotification())
 
                     EventBus.musicStateLiveData.postValue(MusicState.PLAYING(storage.lastPlayedPosition, currentMusic))
                     storage.isPlaying = true
@@ -164,6 +172,7 @@ class MusicService : Service() {
             }
             ServiceCommand.STOP -> {
                 _mediaPlayer?.pause()
+                durationJob?.cancel()
                 stopSelf()
 
                 EventBus.musicStateLiveData.postValue(MusicState.STOP(storage.lastPlayedPosition, currentMusic))
@@ -173,6 +182,8 @@ class MusicService : Service() {
                 if (_mediaPlayer == null) {
                     prepareMediaPlayer()
                 }
+                notifyNotification()
+                stopForeground(true)
 //                stopSelf()
 
                 EventBus.musicStateLiveData.postValue(MusicState.STOP(storage.lastPlayedPosition, currentMusic))
@@ -209,13 +220,17 @@ class MusicService : Service() {
                 }
 
                 _mediaPlayer = MediaPlayer.create(this, Uri.fromFile(File(currentMusic?.data ?: ""))).apply {
+                    storage.lastPlayedDuration = 0
+                    currentDuration = 0
+
                     setOnCompletionListener {
                         timberErrorLog("onComplete")
                         nextMusic()
                     }
                     start()
+                    startSendDuration()
                 }
-                notifyNotification()
+                startForeground(Constants.notificationId, getNotification())
 
                 EventBus.musicStateLiveData.postValue(MusicState.NEXT_OR_PREV(storage.lastPlayedPosition, currentMusic))
                 storage.isPlaying = true
@@ -244,13 +259,17 @@ class MusicService : Service() {
                 }
 
                 _mediaPlayer = MediaPlayer.create(this, Uri.fromFile(File(currentMusic?.data ?: ""))).apply {
+                    storage.lastPlayedDuration = 0
+                    currentDuration = 0
+
                     setOnCompletionListener {
                         timberErrorLog("onComplete")
                         nextMusic()
                     }
                     start()
+                    startSendDuration()
                 }
-                notifyNotification()
+                startForeground(Constants.notificationId, getNotification())
 
                 EventBus.musicStateLiveData.postValue(MusicState.NEXT_OR_PREV(storage.lastPlayedPosition, currentMusic))
                 storage.isPlaying = true
@@ -269,6 +288,8 @@ class MusicService : Service() {
     private fun prepareMediaPlayer() {
         timberLog(cursor.toString())
         cursor?.let { c ->
+            currentDuration = 0
+
             val b = storage.lastPlayedPosition.let { c.moveToPosition(it) }
             timberLog(b.toString())
             if (b) {
@@ -284,10 +305,39 @@ class MusicService : Service() {
                         timberErrorLog("onComplete")
                         nextMusic()
                     }
+                    if (storage.lastPlayedDuration != 0) {
+                        seekTo(storage.lastPlayedDuration)
+                        EventBus.currentValueLiveData.postValue(storage.lastPlayedDuration)
+                    }
                 }
             }
         }
     }
+
+    private fun stopMusic() {
+        _mediaPlayer?.apply {
+            stop()
+            prepare()
+        }
+        durationJob?.cancel()
+    }
+
+    private fun startSendDuration() {
+        durationJob?.cancel()
+
+        durationJob = getMusicChangesFlow().onEach {
+            storage.lastPlayedDuration = it
+            currentDuration = it
+            EventBus.currentValueLiveData.postValue(it)
+        }.launchIn(serviceScope)
+    }
+
+    private fun getMusicChangesFlow() = flow {
+        for (i in currentDuration..(_mediaPlayer?.duration ?: 0)) {
+            emit(_mediaPlayer?.currentPosition ?: 0)
+            delay(1000)
+        }
+    }.flowOn(Dispatchers.Default)
 
     override fun onDestroy() {
         super.onDestroy()
@@ -296,5 +346,39 @@ class MusicService : Service() {
         storage.isPlaying = false
     }
 
-    override fun onBind(p0: Intent?): IBinder? = null
+    /*private fun checkAudioFocusState(): Boolean {
+        val manager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val result = manager?.requestAudioFocus(
+            this, AudioManager.STREAM_MUSIC,
+            AudioManager.AUDIOFOCUS_GAIN
+        )
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    override fun onAudioFocusChange(focusChange: Int) {
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                // Pause
+                val intent = Intent(this, MusicService::class.java)
+                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.STOP)
+                intent.putExtra(Constants.MUSIC_POSITION, storage.lastPlayedPosition)
+                startService(intent)
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                // Resume
+            }
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                // Stop or pause depending on your need
+                val intent = Intent(this, MusicService::class.java)
+                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.STOP)
+                intent.putExtra(Constants.MUSIC_POSITION, storage.lastPlayedPosition)
+                startService(intent)
+            }
+        }
+    }*/
+
+    override fun onBind(p0: Intent): IBinder? {
+        super.onBind(p0)
+        return null
+    }
 }

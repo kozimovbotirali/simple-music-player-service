@@ -10,6 +10,8 @@ class Constants {
         const val ACTION_PLAYER = "com.sablab.android_simple_music_player.util.ACTION_PLAYER"
         const val NOTIFICATION_ACTION_PLAYER = "com.sablab.android_simple_music_player.util.NOTIFICATION_ACTION_PLAYER"
 
+        const val FOR_IMAGE_LIST = "FOR_IMAGE_LIST"
+
         // Notification Constants
         const val channelID = "music_player_notification_channel_id"
         const val foregroundServiceNotificationTitle = "Music Player"
