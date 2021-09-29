@@ -44,7 +44,7 @@ import javax.inject.Inject
  * Created by B.Kozimov on 27.09.2021 9:59.
  */
 @AndroidEntryPoint
-class SongIngoScreen : Fragment(R.layout.screen_song_info) {
+class SongInfoScreen : Fragment(R.layout.screen_song_info) {
 
     private val binding: ScreenSongInfoBinding by viewBinding(ScreenSongInfoBinding::bind)
 

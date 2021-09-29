@@ -58,7 +58,6 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
             .setCustomContentView(createView())
             .build()
 
-
     @Inject
     lateinit var storage: LocalStorage
 

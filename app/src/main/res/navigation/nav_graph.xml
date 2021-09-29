@@ -16,7 +16,7 @@
     </fragment>
     <fragment
         android:id="@+id/songIngoScreen"
-        android:name="com.sablab.android_simple_music_player.presentation.ui.screens.info_screen.SongIngoScreen"
+        android:name="com.sablab.android_simple_music_player.presentation.ui.screens.info_screen.SongInfoScreen"
         android:label="screen_song_info"
         tools:layout="@layout/screen_song_info" />
 </navigation>

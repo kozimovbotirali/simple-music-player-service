@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    tools:context="com.sablab.android_simple_music_player.presentation.ui.screens.info_screen.SongIngoScreen">
+    tools:context="com.sablab.android_simple_music_player.presentation.ui.screens.info_screen.SongInfoScreen">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
