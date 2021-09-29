@@ -3,16 +3,18 @@ package com.sablab.android_simple_music_player.presentation.ui.adapters
 import android.database.Cursor
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.sablab.android_simple_music_player.R
-import com.sablab.android_simple_music_player.data.models.Music
+import com.sablab.android_simple_music_player.data.sources.local.LocalStorage
 import com.sablab.android_simple_music_player.databinding.ItemMusicBinding
-import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.custom.CursorAdapter
-import com.sablab.android_simple_music_player.util.extensions.*
+import com.sablab.android_simple_music_player.util.extensions.loadImage
+import com.sablab.android_simple_music_player.util.extensions.toMusicData
 
-class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
+class MusicsAdapter(val storage: LocalStorage) : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
     private var itemClickListener: OnItemClick? = null
+    var lastSelected = 0
 
     inner class MusicViewHolder(private val binding: ItemMusicBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -22,26 +24,27 @@ class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
             }
         }
 
-        fun bind() {
+        fun bind(position: Int) {
             binding.apply {
-                val data = Music(
-                    id = cursor.getLong(ID),
-                    artist = cursor.getString(ARTIST),
-                    title = cursor.getString(TITLE),
-                    data = cursor.getString(DATA),
-                    displayName = cursor.getString(DISPLAY_NAME),
-                    duration = cursor.getLong(DURATION),
-                    imageUri = root.context.songArt(cursor.getLong(ALBUM_ID))
-                )
-                data.data?.let { Constants.allMusics.add(it) }
+                val data = cursor.toMusicData()
+
                 textName.text = data.title
                 textAuthorName.text = data.artist
 
-                root.setOnClickListener { itemClickListener?.onClick(data) }
+                root.setOnClickListener { itemClickListener?.onClick(position) }
                 if (data.imageUri == null) {
-                    image.setImageResource(R.drawable.ic_music)
+                    image.loadImage(R.drawable.ic_music, 15)
                 } else {
-                    image.loadImage(data.imageUri!!)
+                    image.loadImage(data.imageUri!!, 15)
+                }
+
+                if (storage.lastPlayedPosition == cursor.position) {
+                    lastSelected = cursor.position
+                    textName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.current_text_color))
+                    textAuthorName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.current_text_info_color))
+                } else {
+                    textName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.text_color))
+                    textAuthorName.setTextColor(ContextCompat.getColor(binding.root.context, R.color.text_info_color))
                 }
             }
         }
@@ -62,10 +65,10 @@ class MusicsAdapter : CursorAdapter<MusicsAdapter.MusicViewHolder>() {
     }
 
     fun interface OnItemClick {
-        fun onClick(item: Music)
+        fun onClick(itemPosition: Int)
     }
 
     override fun onBindViewHolder(holder: MusicViewHolder, cursor: Cursor, position: Int) {
-        holder.bind()
+        holder.bind(position)
     }
 }

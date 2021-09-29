@@ -9,5 +9,14 @@
         android:id="@+id/playListScreen"
         android:name="com.sablab.android_simple_music_player.presentation.ui.screens.playlist_screen.PlayListScreen"
         android:label="screen_playlist"
-        tools:layout="@layout/screen_playlist" />
+        tools:layout="@layout/screen_playlist" >
+        <action
+            android:id="@+id/action_playListScreen_to_songIngoScreen"
+            app:destination="@id/songIngoScreen" />
+    </fragment>
+    <fragment
+        android:id="@+id/songIngoScreen"
+        android:name="com.sablab.android_simple_music_player.presentation.ui.screens.info_screen.SongIngoScreen"
+        android:label="screen_song_info"
+        tools:layout="@layout/screen_song_info" />
 </navigation>

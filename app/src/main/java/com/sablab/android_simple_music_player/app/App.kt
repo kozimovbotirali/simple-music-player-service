@@ -16,6 +16,8 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        instance = this
+
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
@@ -35,5 +37,9 @@ class App : Application() {
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager?.createNotificationChannel(serviceChannel)
         }
+    }
+
+    companion object {
+        lateinit var instance: App
     }
 }

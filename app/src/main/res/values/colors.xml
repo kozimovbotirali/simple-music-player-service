@@ -11,4 +11,7 @@
     <color name="text_color">#FFFFFF</color>
     <color name="text_info_color">#B3B3B3</color>
     <color name="divider_color">#606060</color>
+
+    <color name="current_text_color">#A45DFB</color>
+    <color name="current_text_info_color">#CA9EFF</color>
 </resources>

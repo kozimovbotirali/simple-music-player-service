@@ -19,7 +19,9 @@ class LocalStorage private constructor(context: Context) {
     private val pref = context.getSharedPreferences("LocalStorage", Context.MODE_PRIVATE)
 
     var isPlaying: Boolean by BooleanPreference(pref, false)
-    var lastPlayedData: String by StringPreference(pref, "")
+
+    var lastPlayedPosition: Int by IntPreference(pref, 0)
+    var lastPlayedDuration: Int by IntPreference(pref, 0)
 
     fun clear() {
         pref.edit().clear().apply()

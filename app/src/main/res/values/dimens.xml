@@ -7,4 +7,6 @@
     <dimen name="_52dp">52dp</dimen>
     <dimen name="_10dp">10dp</dimen>
     <dimen name="_32dp">32dp</dimen>
+    <dimen name="_65dp">65dp</dimen>
+    <dimen name="_40dp">40dp</dimen>
 </resources>

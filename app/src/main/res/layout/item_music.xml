@@ -10,7 +10,7 @@
     android:paddingHorizontal="25dp"
     android:paddingVertical="@dimen/_10dp">
 
-    <com.sablab.android_simple_music_player.util.custom.RoundRectCornerImageView
+    <ImageView
         android:id="@+id/image"
         android:layout_width="@dimen/_52dp"
         android:layout_height="@dimen/_52dp"
@@ -19,7 +19,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:radius="15"
         tools:ignore="ImageContrastCheck" />
 
     <com.google.android.material.textview.MaterialTextView
@@ -61,6 +60,7 @@
         android:clickable="true"
         android:focusable="true"
         android:src="@drawable/ic_baseline_more"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"

@@ -26,4 +26,9 @@
         <item name="android:fontFamily">@font/roboto</item>
         <item name="android:textSize">@dimen/_14ssp</item>
     </style>
+
+    <style name="SeekBarColor" parent="Widget.AppCompat.SeekBar">
+        <item name="colorAccent">@color/purple_200</item>
+        <item name="android:progressBackgroundTint">@color/white</item>
+    </style>
 </resources>

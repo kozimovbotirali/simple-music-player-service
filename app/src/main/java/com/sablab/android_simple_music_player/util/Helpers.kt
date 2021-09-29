@@ -5,11 +5,17 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.util.DisplayMetrics
 import com.nabinbhandari.android.permissions.PermissionHandler
 import com.nabinbhandari.android.permissions.Permissions
 import timber.log.Timber
-import java.util.ArrayList
+import java.util.*
+import kotlin.math.roundToInt
 
+
+fun Int.dpToPx(context: Context): Int {
+    return (this * (context.resources.displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT)).roundToInt()
+}
 
 fun timberLog(st: String, tag: String = "T12T") {
     Timber.tag(tag).d(st)
@@ -24,7 +30,7 @@ fun Activity.checkPermissions(permission: Array<String>, granted: () -> Unit) {
         this,
         permission,
         null, null,
-        permissionHandler(granted, { goToSettings() }, { goToSettings() }, { goToSettings() })
+        permissionHandler(granted, { }, { }, { })
     )
 }
 
