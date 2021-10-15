@@ -2,13 +2,17 @@ package com.sablab.android_simple_music_player.presentation.ui.screens.info_scre
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.transition.TransitionInflater
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.SharedElementCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -121,8 +125,41 @@ class SongIngoScreen : Fragment(R.layout.screen_song_info) {
         }
     }
 
+    private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        timberErrorLog(it.resultCode.toString())
+        if (Settings.canDrawOverlays(requireContext())) {
+            Toast.makeText(requireContext(), "Permission Granted!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(requireContext(), "Permission Denied! ", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    @SuppressLint("ObsoleteSdkInt")
+    private fun checkOverlayWindowPermission(block: () -> Unit) {
+        if (Build.VERSION.SDK_INT < 23) {
+            block()
+            return
+        }
+        if (!Settings.canDrawOverlays(requireContext())) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${requireActivity().packageName}"))
+            if (intent.resolveActivity(requireActivity().packageManager) != null) {
+                launcher.launch(intent)
+            }
+        } else {
+            block()
+        }
+    }
+
     private fun loadViews() {
         binding.apply {
+            toolbar.setOnMenuItemClickListener {
+                if (it.itemId == R.id.enableOverlay) {
+                    checkOverlayWindowPermission {
+                        Toast.makeText(requireContext(), "Permission Granted!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                return@setOnMenuItemClickListener true
+            }
             list.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             list.adapter = adapter
             snapHelper.attachToRecyclerView(list)

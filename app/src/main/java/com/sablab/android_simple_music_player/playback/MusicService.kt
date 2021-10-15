@@ -8,9 +8,12 @@ import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.graphics.BitmapFactory
+import android.graphics.PixelFormat
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import android.os.IBinder
+import android.view.*
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
@@ -19,21 +22,159 @@ import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.data.models.enums.MusicState
 import com.sablab.android_simple_music_player.data.models.enums.ServiceCommand
 import com.sablab.android_simple_music_player.data.sources.local.LocalStorage
+import com.sablab.android_simple_music_player.databinding.OverlayCloseBinding
+import com.sablab.android_simple_music_player.databinding.OverlayWindowBinding
 import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.Constants.Companion.channelID
 import com.sablab.android_simple_music_player.util.Constants.Companion.foregroundServiceNotificationTitle
 import com.sablab.android_simple_music_player.util.extensions.getPlayListCursor
+import com.sablab.android_simple_music_player.util.extensions.gone
 import com.sablab.android_simple_music_player.util.extensions.toMusicData
+import com.sablab.android_simple_music_player.util.extensions.visible
 import com.sablab.android_simple_music_player.util.timberErrorLog
 import com.sablab.android_simple_music_player.util.timberLog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.File
+import java.util.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListener*/ {
+
+    companion object {
+        private val layoutFlag = if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE
+        private const val windowFlag = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        private const val windowFormat = PixelFormat.TRANSLUCENT
+        private const val MAX_CLICK_DURATION = 1000
+        private val layoutParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            layoutFlag,
+            windowFlag,
+            windowFormat
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = 0
+            y = 100
+        }
+
+        private val layoutParamsClose = WindowManager.LayoutParams(
+            300,
+            300,
+            layoutFlag,
+            windowFlag,
+            windowFormat
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER
+            y = 100
+        }
+    }
+
+    private var _viewBinding: OverlayWindowBinding? = null
+    private val viewBinding: OverlayWindowBinding get() = _viewBinding!!
+
+    private var _viewBindingClose: OverlayCloseBinding? = null
+    private val viewBindingClose: OverlayCloseBinding get() = _viewBindingClose!!
+
+    private var _windowManager: WindowManager? = null
+    private val windowManager: WindowManager get() = _windowManager!!
+
+    private var initialX = 0
+    private var initialY = 0
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var startClickTime = 0L
+    private var clickDuration = 0L
+    private val width by lazy { windowManager.defaultDisplay.width }
+    private val height by lazy { windowManager.defaultDisplay.height }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun createOverlayButton() {
+        _viewBinding = OverlayWindowBinding.inflate(LayoutInflater.from(this), null, false)
+        _windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+
+        viewBinding.btnPlayPause.setOnTouchListener { _, event ->
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    viewBindingClose.btnClose.visible()
+                    startClickTime = Calendar.getInstance().timeInMillis
+
+                    initialX = layoutParams.x
+                    initialY = layoutParams.y
+
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                }
+                MotionEvent.ACTION_UP -> {
+                    clickDuration = Calendar.getInstance().timeInMillis - startClickTime
+                    viewBindingClose.btnClose.gone()
+                    layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
+                    layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
+
+                    if (clickDuration < MAX_CLICK_DURATION) {
+                        playPause()
+                    } else {
+                        if (layoutParams.y > (height * 0.6)) {
+                            _mediaPlayer?.pause()
+                            durationJob?.cancel()
+                            stopSelf()
+
+                            EventBus.musicStateLiveData.postValue(MusicState.STOP(storage.lastPlayedPosition, currentMusic))
+                            storage.isPlaying = false
+                        }
+                    }
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
+                    layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
+                    windowManager.updateViewLayout(viewBinding.root, layoutParams)
+
+                    if (layoutParams.y > (height * 0.6)) {
+                        viewBindingClose.btnClose.setImageResource(R.drawable.ic_baseline_delete_black)
+                    } else {
+                        viewBindingClose.btnClose.setImageResource(R.drawable.ic_baseline_delete_24)
+                    }
+                }
+            }
+            return@setOnTouchListener true
+        }
+
+        //close Button
+
+        _viewBindingClose = OverlayCloseBinding.inflate(LayoutInflater.from(this), null, false)
+        viewBindingClose.btnClose.gone()
+
+        windowManager.addView(viewBindingClose.root, layoutParamsClose)
+        windowManager.addView(viewBinding.root, layoutParams)
+    }
+
+    private fun playPause() {
+        if (_mediaPlayer?.isPlaying == true) {
+            viewBinding.btnPlayPause.setImageResource(R.drawable.ic_play)
+            _mediaPlayer?.pause()
+            durationJob?.cancel()
+            notifyNotification()
+            stopForeground(false)
+
+            EventBus.musicStateLiveData.postValue(MusicState.PAUSE(storage.lastPlayedPosition, currentMusic))
+            storage.isPlaying = false
+        } else {
+            viewBinding.btnPlayPause.setImageResource(R.drawable.ic_pause)
+            if (_mediaPlayer == null) {
+                prepareMediaPlayer()
+            }
+            _mediaPlayer?.start()
+            startSendDuration()
+            startForeground(Constants.notificationId, getNotification())
+
+            EventBus.musicStateLiveData.postValue(MusicState.PLAYING(storage.lastPlayedPosition, currentMusic))
+            storage.isPlaying = true
+        }
+    }
+
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var durationJob: Job? = null
     private var currentDuration: Int = 0
@@ -139,6 +280,9 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
     private fun doCommand(serviceCommand: ServiceCommand?) {
 //        if (checkAudioFocusState())
         when (serviceCommand) {
+            ServiceCommand.CREATE_OVERLAY -> {
+                createOverlayButton()
+            }
             ServiceCommand.PLAY_NEW -> {
                 prepareMediaPlayer()
                 _mediaPlayer?.start()
@@ -314,14 +458,6 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         }
     }
 
-    private fun stopMusic() {
-        _mediaPlayer?.apply {
-            stop()
-            prepare()
-        }
-        durationJob?.cancel()
-    }
-
     private fun startSendDuration() {
         durationJob?.cancel()
 
@@ -344,38 +480,12 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         timberLog("onDestroy")
         serviceScope.cancel()
         storage.isPlaying = false
-    }
 
-    /*private fun checkAudioFocusState(): Boolean {
-        val manager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        val result = manager?.requestAudioFocus(
-            this, AudioManager.STREAM_MUSIC,
-            AudioManager.AUDIOFOCUS_GAIN
-        )
-        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        windowManager.removeView(viewBinding.root)
+        _viewBinding = null
+        _viewBindingClose = null
+        _windowManager = null
     }
-
-    override fun onAudioFocusChange(focusChange: Int) {
-        when (focusChange) {
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                // Pause
-                val intent = Intent(this, MusicService::class.java)
-                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.STOP)
-                intent.putExtra(Constants.MUSIC_POSITION, storage.lastPlayedPosition)
-                startService(intent)
-            }
-            AudioManager.AUDIOFOCUS_GAIN -> {
-                // Resume
-            }
-            AudioManager.AUDIOFOCUS_LOSS -> {
-                // Stop or pause depending on your need
-                val intent = Intent(this, MusicService::class.java)
-                intent.putExtra(Constants.COMMAND_DATA, ServiceCommand.STOP)
-                intent.putExtra(Constants.MUSIC_POSITION, storage.lastPlayedPosition)
-                startService(intent)
-            }
-        }
-    }*/
 
     override fun onBind(p0: Intent): IBinder? {
         super.onBind(p0)

@@ -4,4 +4,5 @@
     <string name="music_name">Despacito</string>
     <string name="musics">Music</string>
     <string name="_00_00">00:00</string>
+    <string name="enable">Use overlay feature</string>
 </resources>

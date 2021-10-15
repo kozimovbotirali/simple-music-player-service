@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/btn_play_pause"
+    android:layout_width="@dimen/_52dp"
+    android:layout_height="@dimen/_52dp"
+    android:clickable="true"
+    android:contentDescription="@string/app_name"
+    android:focusable="true"
+    android:foreground="@drawable/rounded_ripple_white"
+    android:src="@drawable/ic_pause" />
