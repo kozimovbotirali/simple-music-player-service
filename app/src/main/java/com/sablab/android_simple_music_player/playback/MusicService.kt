@@ -93,7 +93,6 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
     @SuppressLint("ClickableViewAccessibility")
     private fun createOverlayButton() {
         _viewBinding = OverlayButtonBinding.inflate(LayoutInflater.from(this), null, false)
-        _windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
         viewBinding.btnPlayPause.setOnTouchListener { _, event ->
             clickDuration = Calendar.getInstance().timeInMillis - startClickTime
@@ -159,8 +158,12 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
     private fun isRemoveVisible() = layoutParams.y > (height * 0.7) && layoutParams.x > (width * 0.3) && layoutParams.x < (width - width * 0.3)
 
     private fun removeOverlayButton() {
-        windowManager.removeView(viewBinding.root)
-        windowManager.removeView(viewBindingClose.root)
+        _viewBinding?.let {
+            _windowManager?.removeView(it.root)
+        }
+        _viewBindingClose?.let {
+            _windowManager?.removeView(it.root)
+        }
         _viewBinding = null
         _viewBindingClose = null
     }
@@ -228,6 +231,7 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
 
     override fun onCreate() {
         super.onCreate()
+        _windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         startForeground(Constants.notificationId, getNotification())
         EventBus.progressChangeLiveData.observe(this) {
             _mediaPlayer?.seekTo(it)
@@ -509,8 +513,12 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         serviceScope.cancel()
         storage.isPlaying = false
 
-        windowManager.removeView(viewBinding.root)
-        windowManager.removeView(viewBindingClose.root)
+        _viewBinding?.let {
+            _windowManager?.removeView(it.root)
+        }
+        _viewBindingClose?.let {
+            _windowManager?.removeView(it.root)
+        }
         _viewBinding = null
         _viewBindingClose = null
         _windowManager = null
