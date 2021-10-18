@@ -23,6 +23,13 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         super.onPause()
     }
 
+    override fun onResume() {
+        if (Settings.canDrawOverlays(this)) {
+            startMusicService(ServiceCommand.REMOVE_OVERLAY)
+        }
+        super.onResume()
+    }
+
     @Suppress("SameParameterValue")
     private fun startMusicService(serviceCommand: ServiceCommand) {
         val intent = Intent(this, MusicService::class.java)

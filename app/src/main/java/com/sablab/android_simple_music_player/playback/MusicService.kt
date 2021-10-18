@@ -22,8 +22,8 @@ import com.sablab.android_simple_music_player.data.models.Music
 import com.sablab.android_simple_music_player.data.models.enums.MusicState
 import com.sablab.android_simple_music_player.data.models.enums.ServiceCommand
 import com.sablab.android_simple_music_player.data.sources.local.LocalStorage
+import com.sablab.android_simple_music_player.databinding.OverlayButtonBinding
 import com.sablab.android_simple_music_player.databinding.OverlayCloseBinding
-import com.sablab.android_simple_music_player.databinding.OverlayWindowBinding
 import com.sablab.android_simple_music_player.util.Constants
 import com.sablab.android_simple_music_player.util.Constants.Companion.channelID
 import com.sablab.android_simple_music_player.util.Constants.Companion.foregroundServiceNotificationTitle
@@ -47,7 +47,7 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         private val layoutFlag = if (Build.VERSION.SDK_INT >= 26) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE
         private const val windowFlag = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         private const val windowFormat = PixelFormat.TRANSLUCENT
-        private const val MAX_CLICK_DURATION = 1000
+        private const val MAX_CLICK_DURATION = 200
         private val layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -72,8 +72,8 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         }
     }
 
-    private var _viewBinding: OverlayWindowBinding? = null
-    private val viewBinding: OverlayWindowBinding get() = _viewBinding!!
+    private var _viewBinding: OverlayButtonBinding? = null
+    private val viewBinding: OverlayButtonBinding get() = _viewBinding!!
 
     private var _viewBindingClose: OverlayCloseBinding? = null
     private val viewBindingClose: OverlayCloseBinding get() = _viewBindingClose!!
@@ -92,14 +92,14 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
 
     @SuppressLint("ClickableViewAccessibility")
     private fun createOverlayButton() {
-        _viewBinding = OverlayWindowBinding.inflate(LayoutInflater.from(this), null, false)
+        _viewBinding = OverlayButtonBinding.inflate(LayoutInflater.from(this), null, false)
         _windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
         viewBinding.btnPlayPause.setOnTouchListener { _, event ->
+            clickDuration = Calendar.getInstance().timeInMillis - startClickTime
 
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    viewBindingClose.btnClose.visible()
                     startClickTime = Calendar.getInstance().timeInMillis
 
                     initialX = layoutParams.x
@@ -109,15 +109,14 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
                     initialTouchY = event.rawY
                 }
                 MotionEvent.ACTION_UP -> {
-                    clickDuration = Calendar.getInstance().timeInMillis - startClickTime
                     viewBindingClose.btnClose.gone()
                     layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
                     layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
 
                     if (clickDuration < MAX_CLICK_DURATION) {
-                        playPause()
+                        playPauseOverlay()
                     } else {
-                        if (layoutParams.y > (height * 0.6)) {
+                        if (isRemoveVisible()) {
                             _mediaPlayer?.pause()
                             durationJob?.cancel()
                             stopSelf()
@@ -125,21 +124,27 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
                             EventBus.musicStateLiveData.postValue(MusicState.STOP(storage.lastPlayedPosition, currentMusic))
                             storage.isPlaying = false
                         }
+                        moveTo()
                     }
+                    return@setOnTouchListener true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
                     layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
                     windowManager.updateViewLayout(viewBinding.root, layoutParams)
 
-                    if (layoutParams.y > (height * 0.6)) {
+                    if (isRemoveVisible()) {
                         viewBindingClose.btnClose.setImageResource(R.drawable.ic_baseline_delete_black)
                     } else {
                         viewBindingClose.btnClose.setImageResource(R.drawable.ic_baseline_delete_24)
                     }
+
+                    if (clickDuration >= MAX_CLICK_DURATION) {
+                        viewBindingClose.btnClose.visible()
+                    }
                 }
             }
-            return@setOnTouchListener true
+            return@setOnTouchListener false
         }
 
         //close Button
@@ -151,7 +156,25 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         windowManager.addView(viewBinding.root, layoutParams)
     }
 
-    private fun playPause() {
+    private fun isRemoveVisible() = layoutParams.y > (height * 0.7) && layoutParams.x > (width * 0.3) && layoutParams.x < (width - width * 0.3)
+
+    private fun removeOverlayButton() {
+        windowManager.removeView(viewBinding.root)
+        windowManager.removeView(viewBindingClose.root)
+        _viewBinding = null
+        _viewBindingClose = null
+    }
+
+    private fun moveTo() {
+        val xPos = if ((layoutParams.x + viewBinding.btnPlayPause.width / 2) >= width / 2) {
+            width
+        } else 0
+
+        layoutParams.x = xPos
+        windowManager.updateViewLayout(viewBinding.root, layoutParams)
+    }
+
+    private fun playPauseOverlay() {
         if (_mediaPlayer?.isPlaying == true) {
             viewBinding.btnPlayPause.setImageResource(R.drawable.ic_play)
             _mediaPlayer?.pause()
@@ -240,9 +263,11 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
                 when {
                     _mediaPlayer?.isPlaying == true -> {
                         remote.setImageViewResource(R.id.btn_play_pause, R.drawable.ic_pause)
+                        _viewBinding?.btnPlayPause?.setImageResource(R.drawable.ic_pause)
                     }
                     _mediaPlayer?.isPlaying != true -> {
                         remote.setImageViewResource(R.id.btn_play_pause, R.drawable.ic_play)
+                        _viewBinding?.btnPlayPause?.setImageResource(R.drawable.ic_play)
                     }
                 }
 
@@ -282,6 +307,9 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         when (serviceCommand) {
             ServiceCommand.CREATE_OVERLAY -> {
                 createOverlayButton()
+            }
+            ServiceCommand.REMOVE_OVERLAY -> {
+                removeOverlayButton()
             }
             ServiceCommand.PLAY_NEW -> {
                 prepareMediaPlayer()
@@ -482,6 +510,7 @@ class MusicService : LifecycleService()/*, AudioManager.OnAudioFocusChangeListen
         storage.isPlaying = false
 
         windowManager.removeView(viewBinding.root)
+        windowManager.removeView(viewBindingClose.root)
         _viewBinding = null
         _viewBindingClose = null
         _windowManager = null
